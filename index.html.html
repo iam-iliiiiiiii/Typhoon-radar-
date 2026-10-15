@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>颱風航線 Typhoon Odyssey</title>
+<meta name="description" content="從海水溫度到登陸防颱:七個互動站點,看懂颱風">
+<style>
+:root{
+  --ink:#0c2136; --paper:#eef3f6; --mute:#4b6074; --white:#fff;
+  --rail:68px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--paper);color:var(--ink);font:16px/1.75 "Noto Sans TC","PingFang TC","Microsoft JhengHei","Heiti TC",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+main{margin-left:var(--rail)}
+
+/* ---------- 強度色階條:導覽 + 進度 ---------- */
+#rail{position:fixed;left:0;top:0;bottom:0;width:var(--rail);display:flex;flex-direction:column;z-index:20;border-right:1.5px solid var(--ink)}
+#rail{background:var(--paper)}
+#rail a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-decoration:none;font-weight:800;font-size:15px;letter-spacing:.18em;color:var(--ink);
+  position:relative;isolation:isolate;transition:box-shadow .3s;border-bottom:1px solid rgba(12,33,54,.35)}
+#rail a::before{content:"";position:absolute;inset:0;background:var(--solid);opacity:.38;z-index:-1;transition:opacity .5s}
+#rail a:last-child{border-bottom:0}
+#rail a span{writing-mode:vertical-rl}
+#rail a .ck{display:none;font-size:15px;letter-spacing:0}
+#rail a.done::before,#rail a.active::before{opacity:1}
+#rail a.active:not(.done)::before{opacity:.75}
+#rail a.done .ck{display:block}
+#rail a.active{box-shadow:inset 7px 0 0 var(--ink)}
+
+/* ---------- hero ---------- */
+.hero{min-height:84vh;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(280px,.9fr);align-items:center;gap:32px;max-width:1240px;margin:0 auto;padding:64px 40px 56px}
+.hero h1{font-size:clamp(68px,8.8vw,136px);line-height:1;font-weight:900;letter-spacing:-.03em;white-space:nowrap}
+.hero .en{font-size:clamp(20px,2.4vw,30px);font-weight:300;margin-top:14px;letter-spacing:.01em}
+.hero p.sub{margin-top:26px;font-size:18px;max-width:30em}
+.hero .cta{margin-top:30px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.hero .count{font-weight:700}
+#radar{width:100%;height:auto;max-height:560px;display:block}
+#radar .ring{fill:none;stroke:var(--ink);stroke-opacity:.2}
+#radar .echo{transition:fill-opacity .9s,r .9s;fill-opacity:.12;stroke:var(--ink);stroke-opacity:.25;stroke-width:1}
+#radar .echo.on{fill-opacity:.88;stroke-opacity:.6}
+
+/* ---------- bands ---------- */
+.band{background:var(--tone);border-top:1.5px solid var(--ink);padding:92px 0 100px;scroll-margin-top:0}
+.wrap{max-width:1160px;margin:0 auto;padding:0 40px;display:grid;grid-template-columns:minmax(240px,340px) minmax(0,1fr);gap:64px}
+.side{align-self:start;position:sticky;top:40px}
+.side .idx{font-weight:700;color:var(--mute);font-size:14px}
+.side h2{font-size:clamp(38px,4.4vw,60px);line-height:1.08;font-weight:900;letter-spacing:-.02em;margin-top:10px}
+.side .en{font-size:18px;font-weight:300;margin-top:6px}
+.side .tag{margin-top:18px;font-size:16px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.chip{font-size:13px;font-weight:600;padding:3px 11px;border:1.5px solid var(--ink);border-radius:4px;background:rgba(255,255,255,.55)}
+.lead{font-size:18px;line-height:1.85;max-width:36em}
+.block h3{font-size:15px;font-weight:800;margin:38px 0 12px}
+.lab{background:var(--white);border:1.5px solid var(--ink);border-radius:6px;padding:20px}
+.lab canvas{width:100%;display:block;border-radius:4px;border:1px solid rgba(12,33,54,.2)}
+.row{display:flex;align-items:center;gap:12px;margin-top:14px;font-size:14px;flex-wrap:wrap}
+.row label{min-width:104px;color:var(--mute);font-weight:600}
+.row output{min-width:68px;text-align:right;font-weight:800;font-variant-numeric:tabular-nums}
+input[type=range]{flex:1;min-width:140px;accent-color:var(--ink)}
+.readout{margin-top:16px;padding:12px 14px;background:var(--tone);border-left:5px solid var(--solid);border-radius:0 4px 4px 0;font-size:14.5px;line-height:1.75;min-height:52px}
+.btn{border:1.5px solid var(--ink);background:transparent;padding:7px 16px;border-radius:6px;font-size:14px;font-weight:700}
+.btn:hover,.btn.on{background:var(--ink);color:var(--white)}
+.btn.primary{background:var(--ink);color:var(--white)}
+.btn.primary:hover{background:var(--solid);color:var(--ink)}
+.hint{font-size:12.5px;color:var(--mute);margin-top:12px;line-height:1.65}
+.warn{font-weight:800}
+.mission{border:1.5px dashed var(--ink);border-radius:6px;padding:16px 18px}
+.mission p{font-size:16px}
+.mission .mstate{margin-top:8px;font-size:13px;color:var(--mute);font-weight:600}
+.mission.done{background:var(--ink);color:var(--white);border-style:solid}
+.mission.done .mstate{color:var(--white)}
+.check{display:flex;gap:12px;align-items:flex-start;padding:10px 2px;border-bottom:1px solid rgba(12,33,54,.14);font-size:15px;line-height:1.55;cursor:pointer}
+.check input{margin-top:5px;accent-color:var(--ink);width:17px;height:17px;flex:none}
+.check.ok span{color:var(--mute);text-decoration:line-through}
+.qopt{display:block;width:100%;text-align:left;margin-top:10px;padding:11px 14px;border:1.5px solid var(--ink);border-radius:6px;background:var(--white);font-size:15px}
+.qopt:hover{background:var(--tone)}
+.qopt.right{background:#c6ecd3}
+.qopt.wrong{background:#f6b3a6}
+.part{cursor:pointer;transition:filter .2s}
+.part:hover{filter:brightness(.94)}
+.part.sel{stroke:#ea5a45;stroke-width:3.5}
+#colophon{border-top:1.5px solid var(--ink);padding:36px 40px 56px;font-size:13px;color:var(--mute);max-width:1160px;margin:0 auto;line-height:1.8}
+
+@media (max-width:900px){
+  :root{--rail:0px}
+  main{margin-left:0;padding-top:46px}
+  #rail{top:0;bottom:auto;right:0;width:auto;height:46px;flex-direction:row;border-right:0;border-bottom:1.5px solid var(--ink)}
+  #rail a{flex-direction:row;font-size:12.5px;letter-spacing:.04em;gap:3px;border-bottom:0;border-right:1px solid rgba(12,33,54,.35)}
+  #rail a:last-child{border-right:0}
+  #rail a span{writing-mode:horizontal-tb}
+  #rail a.active{box-shadow:inset 0 -5px 0 var(--ink)}
+  .hero{grid-template-columns:1fr;padding:36px 22px 40px;min-height:0}
+  #radar{max-width:340px;margin:0 auto}
+  .band{padding:56px 0 64px;scroll-margin-top:46px}
+  .wrap{grid-template-columns:1fr;gap:28px;padding:0 20px}
+  .side{position:static}
+  #colophon{padding:28px 20px 48px}
+  .row label{min-width:84px}
+  input[type=range]{min-width:90px}
+  .row output{min-width:44px}
+  .lab{padding:16px}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<nav id="rail" aria-label="任務進度與導覽"></nav>
+
+<main>
+  <header class="hero">
+    <div>
+      <h1>颱風航線</h1>
+      <div class="en">Typhoon Odyssey</div>
+      <p class="sub">從海洋暖水到安全登陸。七個互動站點,一步步看懂颱風怎麼形成、怎麼移動,以及該怎麼準備。</p>
+      <div class="cta">
+        <button class="btn primary" id="go">開始第一站</button>
+        <span class="count" id="count">已完成 0 / 7 站</span>
+      </div>
+    </div>
+    <svg id="radar" viewBox="-200 -200 400 400" role="img" aria-label="雷達示意圖:每完成一站,畫面上就多一塊回波">
+      <circle class="ring" r="195"/><circle class="ring" r="146"/><circle class="ring" r="97"/><circle class="ring" r="48"/>
+      <line class="ring" x1="-195" y1="0" x2="195" y2="0"/><line class="ring" x1="0" y1="-195" x2="0" y2="195"/>
+      <defs><linearGradient id="sw" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0c2136" stop-opacity=".0"/><stop offset="1" stop-color="#0c2136" stop-opacity=".28"/></linearGradient></defs>
+      <g id="sweep"><path d="M0 0 L195 0 A195 195 0 0 0 149.4 -125.3Z" fill="url(#sw)"/><line x1="0" y1="0" x2="195" y2="0" stroke="#0c2136" stroke-width="1.5"/>
+        <animateTransform attributeName="transform" type="rotate" from="0" to="-360" dur="10s" repeatCount="indefinite"/></g>
+    </svg>
+  </header>
+  <div id="bands"></div>
+  <footer id="colophon">颱風分級與風速門檻依中央氣象署標準整理;海溫與路徑互動為簡化示意模型,並非預報。實際防颱請以中央氣象署與地方政府發布的最新警報為準。</footer>
+</main>
+
+<script>
+(function(){
+"use strict";
+/* ================= helpers ================= */
+var $=function(s,r){return (r||document).querySelector(s)};
+var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+var clamp=function(v,a,b){return Math.max(a,Math.min(b,v))};
+var store={
+  get:function(k,d){try{var v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},
+  set:function(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+};
+var reduce=!!(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches);
+var progress=store.get("typhoon_radar_progress",{});
+
+/* 雷達回波色階:七站由淺到深 */
+var TONE =["#cdeaf6","#c6ecd3","#f4efb0","#f8d29c","#f6b3a6","#eab4dc","#cdbcf0"];
+var SOLID=["#4cb8e0","#4cc78a","#e8d84a","#f2a03d","#ea5a45","#c94fb0","#7a55d6"];
+var SHORT=["暖水","科氏力","結構","路徑","強度","防颱","測驗"];
+
+function setupCanvas(c,h){
+  var dpr=Math.min(window.devicePixelRatio||1,2);
+  var w=c.clientWidth||480;
+  c.width=w*dpr; c.height=h*dpr; c.style.height=h+"px";
+  var x=c.getContext("2d"); x.setTransform(dpr,0,0,dpr,0,0);
+  return {ctx:x,w:w,h:h};
+}
+function slider(label,id,min,max,val,step,unit){
+  return '<div class="row"><label for="'+id+'">'+label+'</label><input type="range" id="'+id+'" min="'+min+'" max="'+max+'" step="'+(step||1)+'" value="'+val+'"><output id="'+id+'o">'+val+(unit||"")+'</output></div>';
+}
+function mkLoop(frame){
+  var raf=0,on=false;
+  function tick(){ frame(); if(on) raf=requestAnimationFrame(tick); }
+  return {
+    play:function(){ if(on) return; if(reduce){frame();return;} on=true; raf=requestAnimationFrame(tick); },
+    pause:function(){ on=false; cancelAnimationFrame(raf); },
+    once:frame
+  };
+}
+
+/* ================= stations ================= */
+var stations=[
+ {id:"ocean",en:"WARM OCEAN",zh:"海洋暖水",ds:"颱風的燃料:海面溫度與水氣",canvas:true,
+  learn:["海面溫度","水氣與潛熱","對流","熱帶擾動"],
+  lead:"颱風像一台以暖海水為燃料的熱機。海水蒸發把水氣送上天空,水氣凝結時釋放潛熱,讓空氣更輕、氣壓更低,風就越吹越強。",
+  mission:"把海溫調到能讓颱風「活起來」的範圍,觀察潛力強度怎麼變化。",
+  lab:labOcean},
+ {id:"spin",en:"CORIOLIS",zh:"科氏力與旋轉",ds:"為什麼颱風會轉?為什麼赤道生不出來?",canvas:true,
+  learn:["科氏力","氣旋式環流","低壓","南北半球差異"],
+  lead:"地球自轉讓移動的空氣偏向:北半球偏右、南半球偏左。空氣往低壓中心流入時被一路拐彎,就形成旋轉。越靠近赤道,這個偏轉越弱。",
+  mission:"找出緯度小到無法形成旋轉的臨界範圍,並比較南北半球的轉向。",
+  lab:labSpin},
+ {id:"struct",en:"ANATOMY",zh:"颱風結構",ds:"颱風眼、眼牆、螺旋雨帶",
+  learn:["颱風眼","眼牆","螺旋雨帶","下沉氣流"],
+  lead:"成熟的颱風有清楚的分層:中心是相對平靜的颱風眼,周圍緊貼著最強風雨的眼牆,外圍則是一圈圈螺旋雨帶。",
+  mission:"點開三個部位,說出哪一區的風雨最猛、哪一區天氣反而最平靜。",
+  lab:labStruct},
+ {id:"track",en:"TRACK",zh:"路徑與引導氣流",ds:"颱風往哪走?由大環境氣流決定",canvas:true,
+  learn:["太平洋高壓","引導氣流","西風槽","轉向"],
+  lead:"颱風本身像一顆被水流帶著走的陀螺,主要由周圍大尺度氣流「引導」。太平洋高壓的強弱與位置、中緯度的西風槽,都會改變它的路徑。",
+  mission:"調整高壓強度與西風槽,做出一條「登陸」與一條「轉向遠離」的路徑。",
+  lab:labTrack},
+ {id:"impact",en:"INTENSITY",zh:"強度分級與風雨",ds:"風速如何換算成颱風等級與蒲福風級",
+  learn:["最大風速","蒲福風級","颱風分級","暴風圈"],
+  lead:"臺灣氣象單位依近中心最大風速,把颱風分成輕度、中度、強烈三級。風級則以蒲福風級描述風對地面與建物的影響。",
+  mission:"把風速調到「強烈颱風」門檻,看看風級與可能影響。",
+  lab:labImpact},
+ {id:"act",en:"PREPARE",zh:"防颱行動",ds:"事前準備,把風險降到最低",
+  learn:["警報","儲備物資","居家防護","避難"],
+  lead:"防颱最有效的時間點在颱風來之前。依官方警報判斷時機,先把居家與物資準備好,比颱風來了才手忙腳亂安全得多。",
+  mission:"完成清單上全部項目,建立自己的防颱準備。",
+  lab:labAct},
+ {id:"final",en:"FINAL MISSION",zh:"終極任務:颱風達人",ds:"五題綜合測驗,檢驗你的颱風知識",
+  learn:["海溫","科氏力","結構","分級"],
+  lead:"把一路學到的知識串起來:燃料、旋轉、結構、路徑、強度與防護。答對 4 題以上即可通關。",
+  mission:"完成測驗,取得「颱風達人」稱號。",
+  lab:labQuiz}
+];
+
+/* ----- 01 ocean ----- */
+function labOcean(root,done){
+  root.innerHTML='<canvas id="oc"></canvas>'+slider("海面溫度","sst",20,32,24,0.5,"°C")+
+   '<div class="readout" id="oread"></div><p class="hint">※ 示意模型:一般認為海溫約 26.5°C 以上、且有足夠深的暖水層,較有利颱風發展;實際強度還取決於風切、濕度等條件。</p>';
+  var c=$("#oc",root), S=setupCanvas(c,190), ctx=S.ctx, w=S.w, h=S.h, t=0;
+  var sst=$("#sst",root);
+  function pot(v){ return v<26.5?0:Math.min(75,(v-26.5)*13+17); }
+  function label(p){
+    if(p<=0) return "尚無法發展";
+    if(p<17.2) return "熱帶性低氣壓";
+    if(p<32.7) return "輕度颱風";
+    if(p<51) return "中度颱風";
+    return "強烈颱風";
+  }
+  function update(){
+    var v=+sst.value; $("#ssto",root).textContent=v+"°C";
+    var p=pot(v);
+    $("#oread",root).innerHTML=v<26.5
+      ? '海溫 <b>'+v+'°C</b> 低於門檻:蒸發與潛熱供應不足,擾動很難組織起來。<br><span class="warn">潛力強度:'+label(p)+'</span>'
+      : '海溫 <b>'+v+'°C</b>:能量充足。示意潛力最大風速約 <b>'+p.toFixed(0)+' m/s</b>。<br><span class="warn">潛力強度:'+label(p)+'</span>';
+    if(v>=26.5) done();
+  }
+  var loop=mkLoop(function(){
+    t+=0.02;
+    var v=+sst.value, k=clamp((v-20)/12,0,1), i;
+    var g=ctx.createLinearGradient(0,0,0,h);
+    g.addColorStop(0,"#0a2a4a");
+    g.addColorStop(.55,"rgb("+Math.round(10+k*190)+","+Math.round(70+k*20)+","+Math.round(140-k*90)+")");
+    g.addColorStop(1,"#041424");
+    ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
+    ctx.fillStyle="rgba(255,255,255,.12)"; ctx.fillRect(0,h*.45,w,2);
+    var n=Math.round(4+k*14), up=0.4+k*1.6;
+    for(i=0;i<n;i++){
+      var x=(i+.5)/n*w, ph=(t*up*30+i*37)%(h*.5), y=h*.45-ph;
+      ctx.fillStyle="rgba(255,255,255,"+(0.6*(1-ph/(h*.5)))+")";
+      ctx.beginPath(); ctx.arc(x+Math.sin(t*2+i)*6,y,2+k*2.5,0,6.283); ctx.fill();
+    }
+    if(v>=26.5){
+      var cx=w*.5, cy=34, r=14+k*14;
+      ctx.strokeStyle="rgba(255,255,255,.92)"; ctx.lineWidth=3; ctx.lineCap="round";
+      for(i=0;i<4;i++){ ctx.beginPath(); ctx.arc(cx,cy,r,t*2+i*1.57,t*2+i*1.57+1.1); ctx.stroke(); }
+    }
+    ctx.fillStyle="rgba(255,255,255,.92)"; ctx.font="13px sans-serif";
+    ctx.fillText("海面 "+v+"°C · "+(v>=26.5?"暖水:蒸發旺盛":"偏冷:蒸發有限"),10,h-10);
+  });
+  sst.addEventListener("input",function(){ update(); if(reduce) loop.once(); });
+  update(); loop.once();
+  return loop;
+}
+
+/* ----- 02 coriolis ----- */
+function labSpin(root,done){
+  root.innerHTML='<canvas id="sc"></canvas>'+slider("緯度","lat",0,35,15,1,"°")+
+   '<div class="row"><label>半球</label><button class="btn on" id="hN">北半球</button><button class="btn" id="hS">南半球</button></div>'+
+   '<div class="readout" id="sread"></div>';
+  var c=$("#sc",root), S=setupCanvas(c,260), ctx=S.ctx, w=S.w, h=S.h;
+  var hemi="N", latEl=$("#lat",root), ps=[], i, seenLow=false, seenS=false;
+  for(i=0;i<320;i++) ps.push({r:20+Math.random()*130,a:Math.random()*6.283});
+  function msg(){
+    var lat=+latEl.value; $("#lato",root).textContent=lat+"°";
+    var el=$("#sread",root);
+    if(lat<5){ el.innerHTML='緯度 <b>'+lat+'°</b>:科氏力近乎為零,空氣直接灌進低壓中心、很快把低壓填平,<span class="warn">難以形成旋轉的颱風</span>。'; seenLow=true; }
+    else el.innerHTML='緯度 <b>'+lat+'°</b>:科氏力足夠,氣流被拐彎成'+(hemi==="N"?'<b>逆時針</b>(北半球)':'<b>順時針</b>(南半球)')+'的旋轉。';
+    if(seenLow&&seenS) done();
+  }
+  latEl.addEventListener("input",msg);
+  $("#hN",root).onclick=function(){hemi="N";this.classList.add("on");$("#hS",root).classList.remove("on");msg()};
+  $("#hS",root).onclick=function(){hemi="S";this.classList.add("on");$("#hN",root).classList.remove("on");seenS=true;msg()};
+  msg();
+  ctx.fillStyle="#fff"; ctx.fillRect(0,0,w,h);
+  var loop=mkLoop(function(){
+    ctx.fillStyle="rgba(255,255,255,.2)"; ctx.fillRect(0,0,w,h);
+    var lat=+latEl.value, spin=lat<5?0:Math.sin(lat*Math.PI/180);
+    var dir=hemi==="N"?-1:1, cx=w/2, cy=h/2, k, p;
+    for(k=0;k<ps.length;k++){
+      p=ps[k];
+      p.r-=0.35;
+      p.a+=dir*spin*0.11/(p.r*0.025+1);
+      if(p.r<6){p.r=130+Math.random()*30;p.a=Math.random()*6.283;}
+      var x=cx+Math.cos(p.a)*p.r*1.3, y=cy+Math.sin(p.a)*p.r*0.9;
+      ctx.fillStyle="rgba(12,33,54,"+(0.25+0.6*(1-p.r/160))+")";
+      ctx.fillRect(x,y,2.2,2.2);
+    }
+    ctx.fillStyle="#ea5a45"; ctx.beginPath(); ctx.arc(cx,cy,5,0,6.283); ctx.fill();
+  });
+  return loop;
+}
+
+/* ----- 03 structure ----- */
+var PARTS={
+  eye:{n:"颱風眼",d:"中心直徑常見約數十公里。空氣在這裡下沉、增溫,雲量少、風相對微弱,但四周就是最強風雨,所以眼通過後風雨會再度回來。"},
+  wall:{n:"眼牆",d:"環繞颱風眼的高聳濃密積雨雲,上升氣流最強,通常是風速最大、雨最猛的區域。眼牆經過時要特別小心。"},
+  band:{n:"螺旋雨帶",d:"外圍呈螺旋狀的帶狀對流雲系。可能在颱風中心還很遠時就帶來陣風、短時強降雨,甚至局部龍捲風。"}
+};
+function labStruct(root,done){
+  root.innerHTML='<svg viewBox="0 0 480 230" id="ssvg" style="width:100%;background:#f3f8fb;border-radius:4px;border:1px solid rgba(12,33,54,.2)">'+
+   '<defs><linearGradient id="cl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#7fb6d6"/></linearGradient></defs>'+
+   '<rect y="190" width="480" height="40" fill="#bfe0f0"/>'+
+   '<g stroke="#0c2136" stroke-width="1.5">'+
+   '<path class="part" data-p="band" d="M10 190 L10 150 Q40 120 70 150 L90 190Z" fill="#a9d3ea"/>'+
+   '<path class="part" data-p="band" d="M390 190 L410 150 Q440 120 470 150 L470 190Z" fill="#a9d3ea"/>'+
+   '<path class="part" data-p="wall" d="M120 190 L135 40 Q165 10 195 40 L205 190Z" fill="url(#cl)"/>'+
+   '<path class="part" data-p="wall" d="M275 190 L285 40 Q315 10 345 40 L360 190Z" fill="url(#cl)"/>'+
+   '<path class="part" data-p="eye" d="M205 190 L195 50 Q240 90 285 50 L275 190Z" fill="#dff0f7" stroke-dasharray="5 4"/></g>'+
+   '<g stroke="#0c2136" stroke-width="2" fill="none" stroke-linecap="round"><path d="M240 60 L240 170"/><path d="M234 156 L240 170 L246 156"/></g>'+
+   '<g font-size="12" font-weight="700" fill="#0c2136" text-anchor="middle"><text x="240" y="30">下沉氣流</text><text x="165" y="215">眼牆</text><text x="315" y="215">眼牆</text><text x="240" y="215">眼</text><text x="45" y="215">雨帶</text><text x="435" y="215">雨帶</text></g></svg>'+
+   '<div class="row" style="gap:8px"><button class="btn" data-q="eye">颱風眼</button><button class="btn" data-q="wall">眼牆</button><button class="btn" data-q="band">螺旋雨帶</button></div>'+
+   '<div class="readout" id="stread">點選圖中的部位,或按下方按鈕查看說明。</div>';
+  var seen={};
+  function pick(k){
+    $$(".part",root).forEach(function(e){e.classList.toggle("sel",e.dataset.p===k)});
+    $$("[data-q]",root).forEach(function(e){e.classList.toggle("on",e.dataset.q===k)});
+    $("#stread",root).innerHTML='<b>'+PARTS[k].n+'</b><br>'+PARTS[k].d;
+    seen[k]=1; if(seen.eye&&seen.wall&&seen.band) done();
+  }
+  $$(".part",root).forEach(function(e){e.addEventListener("click",function(){pick(e.dataset.p)})});
+  $$("[data-q]",root).forEach(function(e){e.addEventListener("click",function(){pick(e.dataset.q)})});
+  return null;
+}
+
+/* ----- 04 track ----- */
+var TW=[[266,138],[278,152],[281,180],[271,214],[260,224],[252,196],[254,158]];
+function inPoly(x,y,P){
+  var ins=false,i,j;
+  for(i=0,j=P.length-1;i<P.length;j=i++){
+    var xi=P[i][0],yi=P[i][1],xj=P[j][0],yj=P[j][1];
+    if(((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi)) ins=!ins;
+  }
+  return ins;
+}
+function labTrack(root,done){
+  root.innerHTML='<canvas id="tc"></canvas>'+slider("太平洋高壓","hi",0,100,80,1,"")+
+   '<div class="row"><label>西風槽</label><button class="btn" id="tr">關閉</button><button class="btn primary" id="play">▶ 重播路徑</button></div>'+
+   '<div class="readout" id="tread"></div><p class="hint">※ 簡化示意圖,並非預報。真實路徑受多種系統交互影響,請以中央氣象署官方預報為準。</p>';
+  var c=$("#tc",root), S=setupCanvas(c,290), ctx=S.ctx, w=S.w, h=S.h, raf=0;
+  var VW=640, VH=360, sx=w/VW, sy=h/VH;
+  var hiEl=$("#hi",root), trough=false, track=[], shown=0, results={land:false,away:false}, result="";
+  function sim(){
+    var hi=+hiEl.value, x=590, y=250, vx=-2, vy=-(0.25+(100-hi)/100*1.4), pts=[[x,y]], n;
+    for(n=0;n<320&&x>-10&&y>-10&&x<VW+10;n++){
+      if(trough&&x<400){ vx=Math.min(1.6,vx+0.04); vy=Math.max(-1.9,vy-0.015); }
+      x+=vx; y+=vy; pts.push([x,y]);
+      if(inPoly(x,y,TW)) break;
+    }
+    return pts;
+  }
+  function judge(){
+    var hit=false,minD=1e9,i;
+    for(i=0;i<track.length;i++){
+      if(inPoly(track[i][0],track[i][1],TW)) hit=true;
+      var dx=track[i][0]-267,dy=track[i][1]-180,d=Math.sqrt(dx*dx+dy*dy);
+      if(d<minD)minD=d;
+    }
+    if(hit){result="land";return '路徑穿過臺灣:<b>登陸</b>。強風豪雨影響最大,需提高警戒。';}
+    if(minD<90){result="near";return '路徑在臺灣近海通過:<b>近台擦過</b>。暴風圈仍可能影響,風雨不可輕忽。';}
+    result="away";return '路徑遠離臺灣:<b>轉向或北上遠離</b>。仍須留意外圍環流帶來的間接影響。';
+  }
+  function drawBase(){
+    ctx.fillStyle="#dff0f7"; ctx.fillRect(0,0,w,h);
+    ctx.fillStyle="#e3e7d3"; ctx.strokeStyle="#0c2136"; ctx.lineWidth=1.2;
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(150*sx,0); ctx.lineTo(120*sx,120*sy); ctx.lineTo(140*sx,240*sy); ctx.lineTo(100*sx,VH*sy); ctx.lineTo(0,VH*sy); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle="#c9d6b0"; ctx.beginPath();
+    TW.forEach(function(p,i){ i?ctx.lineTo(p[0]*sx,p[1]*sy):ctx.moveTo(p[0]*sx,p[1]*sy)}); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle="#0c2136"; ctx.font="bold 12px sans-serif";
+    ctx.fillText("臺灣",290*sx,185*sy); ctx.fillText("大陸",20*sx,60*sy); ctx.fillText("太平洋",520*sx,330*sy);
+    var hiv=+hiEl.value, r=30+hiv*0.6;
+    var g=ctx.createRadialGradient(540*sx,90*sy,5,540*sx,90*sy,r*1.8);
+    g.addColorStop(0,"rgba(242,160,61,.5)"); g.addColorStop(1,"rgba(242,160,61,0)");
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(540*sx,90*sy,r*1.8,0,6.283); ctx.fill();
+    ctx.fillStyle="#9a5a08"; ctx.fillText("太平洋高壓 H",470*sx,95*sy);
+    if(trough){
+      ctx.strokeStyle="#7a55d6"; ctx.setLineDash([6,5]); ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(380*sx,10*sy); ctx.quadraticCurveTo(350*sx,120*sy,395*sx,230*sy); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle="#5b3bb0"; ctx.fillText("西風槽",330*sx,30*sy);
+    }
+  }
+  function drawTrack(upto){
+    drawBase();
+    ctx.strokeStyle="#ea5a45"; ctx.lineWidth=3; ctx.beginPath();
+    for(var i=0;i<=upto&&i<track.length;i++){ var p=track[i]; i?ctx.lineTo(p[0]*sx,p[1]*sy):ctx.moveTo(p[0]*sx,p[1]*sy); }
+    ctx.stroke();
+    var q=track[Math.min(upto,track.length-1)];
+    ctx.fillStyle="#0c2136"; ctx.beginPath(); ctx.arc(q[0]*sx,q[1]*sy,5,0,6.283); ctx.fill();
+    ctx.strokeStyle="#ea5a45"; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(q[0]*sx,q[1]*sy,11,0,6.283); ctx.stroke();
+  }
+  function recompute(anim){
+    cancelAnimationFrame(raf);
+    $("#hio",root).textContent=hiEl.value;
+    track=sim();
+    $("#tread",root).innerHTML=judge();
+    if(result==="land") results.land=true; else if(result==="away") results.away=true;
+    if(results.land&&results.away) done();
+    if(anim&&!reduce){
+      shown=0;
+      (function step(){ shown+=3; drawTrack(shown); if(shown<track.length-1) raf=requestAnimationFrame(step); })();
+    } else drawTrack(track.length-1);
+  }
+  hiEl.addEventListener("input",function(){recompute(false)});
+  $("#tr",root).onclick=function(){trough=!trough;this.textContent=trough?"開啟":"關閉";this.classList.toggle("on",trough);recompute(false)};
+  $("#play",root).onclick=function(){recompute(true)};
+  recompute(false);
+  return {play:function(){},pause:function(){cancelAnimationFrame(raf)}};
+}
+
+/* ----- 05 intensity ----- */
+var BF=[0.3,1.6,3.4,5.5,8.0,10.8,13.9,17.2,20.8,24.5,28.5,32.7,37.0,41.5,46.2,51.0,56.1];
+function labImpact(root,done){
+  root.innerHTML=slider("近中心最大風速","ws",0,70,20,0.5," m/s")+
+   '<div class="row" style="margin-top:18px"><div id="gauge" style="flex:1;height:14px;border-radius:7px;border:1.5px solid #0c2136;background:linear-gradient(90deg,#4cb8e0 0 24.5%,#f2a03d 24.5% 46.7%,#ea5a45 46.7% 72.9%,#c94fb0 72.9%);position:relative"><i id="needle" style="position:absolute;top:-7px;width:4px;height:26px;background:#0c2136;border-radius:2px;left:0"></i></div></div>'+
+   '<div class="readout" id="iread"></div>'+
+   '<p class="hint">分級(依近中心最大風速):輕度 17.2–32.6 m/s、中度 32.7–50.9 m/s、強烈 ≥51.0 m/s(約 8–11 級 / 12–15 級 / 16 級以上)。風速低於 17.2 m/s 屬熱帶性低氣壓。</p>';
+  var ws=$("#ws",root);
+  var fx=["幾乎無風感。","樹葉微動,行走受影響不大。","大樹搖動,逆風行走吃力。","樹枝折斷,行走相當困難。","可能吹毀簡易建物、招牌,戶外極度危險。","可能造成嚴重災損,待在堅固建築內。","極具破壞力,務必遠離窗邊與外圍。"];
+  function update(){
+    var v=+ws.value, lv=0, i;
+    for(i=0;i<BF.length;i++) if(v>=BF[i]) lv=i+1;
+    $("#wso",root).textContent=v+" m/s";
+    $("#needle",root).style.left=(v/70*100)+"%";
+    var cls=v>=51?"強烈颱風":v>=32.7?"中度颱風":v>=17.2?"輕度颱風":"未達颱風標準";
+    var f=lv<=3?0:lv<=5?1:lv<=7?2:lv<=9?3:lv<=11?4:lv<=14?5:6;
+    var fxIdx=lv===0?0:lv<=2?1:f;
+    $("#iread",root).innerHTML='風速 <b>'+v+' m/s</b> ≈ 蒲福 <b>'+lv+' 級</b><br>分類:<b class="warn">'+cls+'</b><br>'+fx[Math.min(fxIdx,6)];
+    if(v>=51) done();
+  }
+  ws.addEventListener("input",update); update();
+  return null;
+}
+
+/* ----- 06 prepare ----- */
+var TODO=["備好手電筒、電池與行動電源","儲備足夠的飲水與乾糧(至少數日份)","固定或收進陽台、窗外的盆栽與雜物","疏通排水孔與落水管,檢查門窗是否緊閉","確認家人的避難處所與撤離路線","車輛停放在高處,避開低窪與樹下","準備常備藥品與重要證件(防水保存)","關注中央氣象署與地方政府的最新警報"];
+function labAct(root,done){
+  var saved=store.get("typhoon_radar_todo",[]);
+  root.innerHTML='<div id="list"></div><div class="readout" id="aread"></div>';
+  var list=$("#list",root);
+  list.innerHTML=TODO.map(function(t,i){
+    return '<label class="check'+(saved.indexOf(i)>-1?' ok':'')+'"><input type="checkbox" data-i="'+i+'"'+(saved.indexOf(i)>-1?' checked':'')+'><span>'+t+'</span></label>';
+  }).join("");
+  function upd(){
+    var n=$$("input:checked",list).length;
+    $("#aread",root).innerHTML='已完成 <b>'+n+' / '+TODO.length+'</b>'+(n===TODO.length?' ・ 準備完成!':'');
+    if(n===TODO.length) done();
+  }
+  list.addEventListener("change",function(e){
+    var cb=e.target; cb.parentNode.classList.toggle("ok",cb.checked);
+    var arr=$$("input:checked",list).map(function(x){return +x.dataset.i});
+    store.set("typhoon_radar_todo",arr); upd();
+  });
+  upd();
+  return null;
+}
+
+/* ----- 07 quiz ----- */
+var QUIZ=[
+ {q:"海面溫度大約要達到多少,通常較有利颱風發展?",o:["約 15°C","約 20°C","約 26.5°C 以上","約 40°C"],a:2},
+ {q:"為什麼赤道附近(緯度 5° 以內)很少生成颱風?",o:["海水太冷","科氏力太弱,難以形成旋轉","陸地太多","空氣太乾"],a:1},
+ {q:"北半球的颱風,從上空往下看,環流方向是?",o:["逆時針","順時針","不一定,隨機","不旋轉"],a:0},
+ {q:"以近中心最大風速分級,風速達 51 m/s 以上屬於?",o:["輕度颱風","中度颱風","強烈颱風","熱帶性低氣壓"],a:2},
+ {q:"關於颱風眼,下列何者正確?",o:["風雨最強","下沉氣流為主,風相對較弱","一定沒有雲","代表颱風結束了"],a:1}
+];
+function labQuiz(root,done){
+  var idx=0,score=0,locked=false;
+  function render(){
+    if(idx>=QUIZ.length){
+      var pass=score>=4;
+      root.innerHTML='<div class="readout"><b>成績:'+score+' / '+QUIZ.length+'</b><br>'+(pass?'🌀 恭喜通關!你是「颱風達人」。記得在颱風來臨前,持續關注官方警報。':'再接再厲!回到前面的站點複習一下,然後再試一次。')+'</div><div class="row"><button class="btn primary" id="retry">重新作答</button></div>';
+      $("#retry",root).onclick=function(){idx=0;score=0;render()};
+      if(pass) done();
+      return;
+    }
+    var q=QUIZ[idx]; locked=false;
+    root.innerHTML='<div class="hint" style="margin-top:0">第 '+(idx+1)+' / '+QUIZ.length+' 題</div><p style="margin-top:6px;line-height:1.7;font-weight:700">'+q.q+'</p>'+
+      q.o.map(function(t,i){return '<button class="qopt" data-i="'+i+'">'+t+'</button>'}).join("")+'<div class="readout" id="qfb" style="display:none"></div>';
+    $$(".qopt",root).forEach(function(b){
+      b.onclick=function(){
+        if(locked) return; locked=true;
+        var i=+b.dataset.i, ok=i===q.a;
+        if(ok) score++;
+        b.classList.add(ok?"right":"wrong");
+        if(!ok) $$(".qopt",root)[q.a].classList.add("right");
+        var fb=$("#qfb",root); fb.style.display="block";
+        fb.innerHTML=(ok?'答對了!':'答錯了。')+' <button class="btn" id="qn" style="margin-left:6px">'+(idx===QUIZ.length-1?'看成績':'下一題')+'</button>';
+        $("#qn",root).onclick=function(){idx++;render()};
+      };
+    });
+  }
+  render();
+  return null;
+}
+
+/* ================= build page ================= */
+function titleCase(s){ return s.toLowerCase().replace(/(^|\s)\S/g,function(m){return m.toUpperCase()}); }
+function build(){
+  var r="", b="", n=stations.length;
+  stations.forEach(function(s,i){
+    r+='<a href="#band-'+s.id+'" id="rail-'+s.id+'" style="--solid:'+SOLID[i]+'" aria-label="第 '+(i+1)+' 站 '+s.zh+'"><b class="ck">✓</b><span>'+SHORT[i]+'</span></a>';
+    b+='<section class="band" id="band-'+s.id+'" style="--tone:'+TONE[i]+';--solid:'+SOLID[i]+'"><div class="wrap">'+
+      '<div class="side"><div class="idx">第 '+(i+1)+' 站,共 '+n+' 站</div><h2>'+s.zh+'</h2><div class="en">'+titleCase(s.en)+'</div><p class="tag">'+s.ds+'</p>'+
+      '<h3 style="font-size:15px;font-weight:800;margin:26px 0 0">你會學到</h3><div class="chips" style="margin-top:10px">'+s.learn.map(function(t){return '<span class="chip">'+t+'</span>'}).join("")+'</div></div>'+
+      '<div class="main"><p class="lead">'+s.lead+'</p>'+
+      '<div class="block"><h3>互動實驗</h3><div class="lab" id="lab-'+s.id+'"></div></div>'+
+      '<div class="block"><h3>任務</h3><div class="mission" id="mission-'+s.id+'"><p>'+s.mission+'</p><div class="mstate" id="mstate-'+s.id+'"></div></div></div>'+
+      '</div></div></section>';
+  });
+  $("#rail").innerHTML=r; $("#bands").innerHTML=b;
+  /* radar echoes: one per station */
+  var ECHO=[[62,-44,20],[-92,28,26],[34,96,22],[-44,-112,24],[122,60,28],[-134,-62,22],[0,0,34]];
+  var svg=$("#radar"), sweep=$("#sweep");
+  ECHO.forEach(function(e,i){
+    var c=document.createElementNS("http://www.w3.org/2000/svg","circle");
+    c.setAttribute("class","echo"); c.setAttribute("id","echo"+i);
+    c.setAttribute("cx",e[0]); c.setAttribute("cy",e[1]); c.setAttribute("r",e[2]); c.setAttribute("fill",SOLID[i]);
+    svg.insertBefore(c,sweep);
+  });
+  if(reduce){ var a=$("#sweep animateTransform"); if(a) a.parentNode.removeChild(a); }
+}
+
+function markDone(id){
+  if(progress[id]) return;
+  progress[id]=true; store.set("typhoon_radar_progress",progress);
+  updateProgress();
+}
+function firstOpen(){
+  for(var i=0;i<stations.length;i++) if(!progress[stations[i].id]) return i;
+  return -1;
+}
+function updateProgress(){
+  var n=0;
+  stations.forEach(function(s,i){
+    var d=!!progress[s.id]; if(d) n++;
+    $("#rail-"+s.id).classList.toggle("done",d);
+    $("#mission-"+s.id).classList.toggle("done",d);
+    $("#mstate-"+s.id).textContent=d?"✓ 任務完成!":"完成實驗操作後,任務會自動達成。";
+    $("#echo"+i).classList.toggle("on",d);
+  });
+  $("#count").textContent="已完成 "+n+" / "+stations.length+" 站";
+  $("#go").textContent=n===0?"開始第一站":n===stations.length?"從頭再看一次":"繼續下一站";
+}
+
+/* ================= labs + observers ================= */
+var ctrls=[], ioLab=null, ioRail=null;
+function mount(i){
+  var s=stations[i], root=$("#lab-"+s.id);
+  if(ctrls[i]&&ctrls[i].pause) ctrls[i].pause();
+  root.dataset.i=i;
+  ctrls[i]=s.lab(root,function(){markDone(s.id)})||null;
+  if(ctrls[i]){
+    if(ioLab){ ioLab.unobserve(root); ioLab.observe(root); }
+    else ctrls[i].play();
+  }
+}
+function setupObservers(){
+  if(!("IntersectionObserver" in window)) return;
+  ioLab=new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      var c=ctrls[+e.target.dataset.i]; if(!c) return;
+      if(e.isIntersecting) c.play(); else c.pause();
+    });
+  },{threshold:0.05});
+  ioRail=new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      if(!e.isIntersecting) return;
+      $$("#rail a").forEach(function(a){a.classList.remove("active")});
+      var el=$("#rail-"+e.target.id.slice(5)); if(el) el.classList.add("active");
+    });
+  },{rootMargin:"-45% 0px -50% 0px"});
+  $$(".band").forEach(function(el){ioRail.observe(el)});
+}
+
+/* ================= init ================= */
+build(); setupObservers();
+stations.forEach(function(s,i){mount(i)});
+updateProgress();
+
+$("#go").onclick=function(){
+  var i=firstOpen(); if(i<0) i=0;
+  $("#band-"+stations[i].id).scrollIntoView({behavior:reduce?"auto":"smooth",block:"start"});
+};
+
+var lastW=window.innerWidth, tmr=0;
+window.addEventListener("resize",function(){
+  clearTimeout(tmr);
+  tmr=setTimeout(function(){
+    if(Math.abs(window.innerWidth-lastW)<3) return;
+    lastW=window.innerWidth;
+    stations.forEach(function(s,i){ if(s.canvas) mount(i); });
+  },250);
+});
+})();
+</script>
+</body>
+</html>
